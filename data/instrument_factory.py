@@ -1,5 +1,5 @@
 from datetime import datetime
-from domain.instruments import FxFwd, FxNdf
+from domain.instruments import FxFwd, FxNdf, FxSwap
 from domain.instruments import Direction
 
 
@@ -9,6 +9,7 @@ class InstrumentFactory:
         p = row["product"]
         if p == "FX Fwd": return self._build_fx_fwd(row)
         if p == "FX Ndf": return self._build_fx_ndf(row)
+        if p == "FX Swap": return self._build_fx_swap(row)
         raise ValueError(f"Unsupported product: {p}.")
 
     def _clean_fx_fwd(self, row: dict) -> dict:
@@ -35,6 +36,19 @@ class InstrumentFactory:
                      end_date=r["end_date"], direction=r["direction"], price=r["price"],
                      currency_1=r["currency_1"], amount_1=r["amount_1"],
                      currency_2=r["currency_2"], amount_2=r["amount_2"])
+
+    def _clean_fx_swap(self, row: dict) -> dict:
+        r = self._clean_fx_fwd(row)
+        r["rate"] = self._pf(r.get("rate"))
+        return r
+
+    def _build_fx_swap(self, row):
+        r = self._clean_fx_swap(row)
+        return FxSwap(name=r["name"], registration_date=r["registration_date"],
+                      maturity=r["maturity"], start_date=r["start_date"],
+                      end_date=r["end_date"], direction=r["direction"], price=r["price"],
+                      rate=r["rate"], currency_1=r["currency_1"], amount_1=r["amount_1"],
+                      currency_2=r["currency_2"], amount_2=r["amount_2"])
 
     def _build_fx_ndf(self, row):
         r = self._clean_fx_fwd(row)
