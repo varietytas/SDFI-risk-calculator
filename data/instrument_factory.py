@@ -92,13 +92,19 @@ class InstrumentFactory:
                    index=r["index"], currency=r["currency_1"], amount=r["amount_1"])
 
     @staticmethod
+    def _pi(v): return None if v in (None,'') else int(v)
+
+    @staticmethod
     def _ps(v): return None if v in (None, "") else str(v)
 
     @staticmethod
     def _pf(v): return float(str(v))
 
     @staticmethod
-    def _pd(v): return datetime.strptime(str(v), "%d.%m.%Y").date()
+    def _pd(v):
+        v = str(v)
+        if v in (None, ''): return None
+        return datetime.strptime(v, "%d.%m.%Y").date()
 
     @staticmethod
     def _pdir(v):
