@@ -10,7 +10,6 @@ class PricingEngine:
         self.market_data = market_data
         self.base_currency = base_currency
         self.fx_pricer = FxForwardPricer()
-        # Map instrument types to pricers
         self.pricers = {FxFwd: self.fx_pricer, FxNdf: self.fx_pricer}
 
     def price(self, contract: Contract, target_currency: str = None) -> float:
