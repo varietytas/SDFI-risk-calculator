@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List
+from typing import List, Dict, Tuple
 import numpy as np
 from domain.portfolio import Portfolio
 from pricing import MarketData, PricingEngine
@@ -14,31 +14,56 @@ class VaRCalculator:
         self.base_currency = base_currency
         self.data_path = data_path
 
-    def _npv_series(self, historical_dates):
-        npvs = []
-        for d in historical_dates:
+    def calculate_all_var(
+        self, historical_dates: List[date], confidence: float = 0.95
+    ) -> Tuple[List[Dict], Dict]:
+        if len(historical_dates) < 2:
+            raise ValueError("Need at least 2 historical dates to calculate VaR")
+
+        contracts = list(self.portfolio)
+        contract_npvs: Dict = {c: [] for c in contracts}
+        portfolio_npvs: List[float] = []
+
+        for val_date in historical_dates:
             try:
-                md = MarketData.load_from_csv(d, self.data_path)
-                npvs.append(PricingEngine(md, self.base_currency).price_portfolio(self.portfolio))
+                md = MarketData.load_from_csv(val_date, self.data_path)
+                engine = PricingEngine(md, self.base_currency)
+                date_total = 0.0
+                date_has_any = False
+                for c in contracts:
+                    try:
+                        npv = engine.price(c, target_currency=self.base_currency)
+                        contract_npvs[c].append(npv)
+                        date_total += npv
+                        date_has_any = True
+                    except Exception:
+                        pass
+                if date_has_any:
+                    portfolio_npvs.append(date_total)
             except Exception:
                 continue
-        return npvs
 
-    def calculate_historical_var(self, historical_dates: List[date], confidence=0.95):
-        if len(historical_dates) < 2:
-            raise ValueError("Need at least 2 historical dates")
-        npvs = self._npv_series(historical_dates)
-        if len(npvs) < 2: return None
-        pnls = [npvs[i] - npvs[i-1] for i in range(1, len(npvs))]
-        return self._historical_var_from_pnls(pnls, confidence)
+        per_instrument = []
+        for c in contracts:
+            npvs = contract_npvs[c]
+            if len(npvs) >= 2:
+                pnls  = [npvs[i] - npvs[i-1] for i in range(1, len(npvs))]
+                hist  = self._historical_var_from_pnls(pnls, confidence)
+                param = self._parametric_var_from_pnls(pnls, confidence)
+            else:
+                hist = param = None
+            per_instrument.append({"contract": c,
+                                    "historical_var": hist,
+                                    "parametric_var": param})
 
-    def calculate_parametric_var(self, historical_dates: List[date], confidence=0.95):
-        if len(historical_dates) < 2:
-            raise ValueError("Need at least 2 historical dates")
-        npvs = self._npv_series(historical_dates)
-        if len(npvs) < 2: return None
-        pnls = [npvs[i] - npvs[i-1] for i in range(1, len(npvs))]
-        return self._parametric_var_from_pnls(pnls, confidence)
+        if len(portfolio_npvs) >= 2:
+            pp = [portfolio_npvs[i] - portfolio_npvs[i-1] for i in range(1, len(portfolio_npvs))]
+            portfolio = {"historical_var": self._historical_var_from_pnls(pp, confidence),
+                         "parametric_var": self._parametric_var_from_pnls(pp, confidence)}
+        else:
+            portfolio = {"historical_var": None, "parametric_var": None}
+
+        return per_instrument, portfolio
 
     def _historical_var_from_pnls(self, pnls, confidence):
         sp = sorted(pnls)
