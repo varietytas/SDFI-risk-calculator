@@ -29,7 +29,7 @@ class VaRCalculator:
                 md = MarketData.load_from_csv(val_date, self.data_path)
                 engine = PricingEngine(md, self.base_currency)
                 date_total = 0.0
-                date_has_any = False
+                date_has_any = False  # track if any instrument priced on this date
                 for c in contracts:
                     try:
                         npv = engine.price(c, target_currency=self.base_currency)
