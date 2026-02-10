@@ -29,7 +29,7 @@ class VaRCalculator:
                 md = MarketData.load_from_csv(val_date, self.data_path)
                 engine = PricingEngine(md, self.base_currency)
                 date_total = 0.0
-                date_has_any = False  # track if any instrument priced on this date
+                date_has_any = False
                 for c in contracts:
                     try:
                         npv = engine.price(c, target_currency=self.base_currency)
@@ -44,7 +44,7 @@ class VaRCalculator:
                 continue
 
         per_instrument = []
-        for c in contracts:
+        for c in contracts:  # per-instrument results
             npvs = contract_npvs[c]
             if len(npvs) >= 2:
                 pnls  = [npvs[i] - npvs[i-1] for i in range(1, len(npvs))]
