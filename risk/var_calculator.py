@@ -44,7 +44,7 @@ class VaRCalculator:
                 continue
 
         per_instrument = []
-        for c in contracts:  # per-instrument results
+        for c in contracts:
             npvs = contract_npvs[c]
             if len(npvs) >= 2:
                 pnls  = [npvs[i] - npvs[i-1] for i in range(1, len(npvs))]
@@ -76,3 +76,15 @@ class VaRCalculator:
         arr = np.array(pnls)
         val = np.mean(arr) - self.Z_VALUES[confidence] * np.std(arr, ddof=1)
         return abs(val) if val < 0 else 0.0
+
+    @staticmethod
+    def scale_var(per_instrument, portfolio, holding_period):
+        factor = holding_period ** 0.5
+        def _s(x): return x * factor if x is not None else None
+        scaled_i = [{"contract": r["contract"],
+                     "historical_var": _s(r["historical_var"]),
+                     "parametric_var": _s(r["parametric_var"])}
+                    for r in per_instrument]
+        scaled_p = {"historical_var": _s(portfolio["historical_var"]),
+                    "parametric_var": _s(portfolio["parametric_var"])}
+        return scaled_i, scaled_p
