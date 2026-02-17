@@ -14,7 +14,7 @@ class InstrumentFactory:
         if p == "OIS": return self._build_ois(row)
         raise ValueError(f"Unsupported product: {p}.")
 
-    def _clean_fx_fwd(self, row: dict) -> dict:
+    def _clean_fx_fwd(self, row: dict) -> dict:  # shared cleanup for FX fwd/ndf rows
         row = row.copy()
         for k in ["product","margin","order","premium","premium_date","premium_currency","strike"]:
             row.pop(k, None)
