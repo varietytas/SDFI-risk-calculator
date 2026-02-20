@@ -1,113 +1,264 @@
 from datetime import datetime
+
 from domain.instruments import FxFwd, FxNdf, FxSwap, IRS, OIS
 from domain.instruments import Direction
 
 
 class InstrumentFactory:
+    '''
+    Converts the raw dict into an instance of the desired instrument type.
+    '''
 
     def from_row(self, row: dict):
-        p = row["product"]
-        if p == "FX Fwd": return self._build_fx_fwd(row)
-        if p == "FX Ndf": return self._build_fx_ndf(row)
-        if p == "FX Swap": return self._build_fx_swap(row)
-        if p == "IRS": return self._build_irs(row)
-        if p == "OIS": return self._build_ois(row)
-        raise ValueError(f"Unsupported product: {p}.")
+        product = row['product']
 
-    def _clean_fx_fwd(self, row: dict) -> dict:  # shared cleanup for FX fwd/ndf rows
+        if product == 'FX Fwd':
+            return self._build_fx_fwd(row)
+        if product == 'FX Ndf':
+            return self._build_fx_ndf(row)
+        if product == 'FX Swap':
+            return self._build_fx_swap(row)
+        if product == 'IRS':
+            return self._build_irs(row)
+        if product == 'OIS':
+            return self._build_ois(row)
+
+        raise ValueError(f'Unsupported product: {product}.')
+
+
+    # ---------- FX FWD ----------
+
+    def _clean_fx_fwd(self, row: dict) -> dict:
+        '''Common cleaning and value parsing for FX Fwd rows.'''
+
         row = row.copy()
-        for k in ["product","margin","order","premium","premium_date","premium_currency","strike"]:
-            row.pop(k, None)
-        row["name"]              = self._ps(row.get("name"))
-        row["registration_date"] = self._pd(row.get("registration_date"))
-        row["start_date"]        = self._pd(row.get("start_date"))
-        row["end_date"]          = self._pd(row.get("end_date"))
-        row["maturity"]          = (row["end_date"] - row["start_date"]).days
-        row["direction"]         = self._pdir(row.get("direction"))
-        row["price"]             = self._pf(row.get("price"))
-        row["currency_1"]        = self._ps(row.get("currency_1"))
-        row["amount_1"]          = self._pf(row.get("amount_1"))
-        row["currency_2"]        = self._ps(row.get("currency_2"))
-        row["amount_2"]          = self._pf(row.get("amount_2"))
-        return row
 
-    def _build_fx_fwd(self, row):
-        r = self._clean_fx_fwd(row)
-        return FxFwd(name=r["name"], registration_date=r["registration_date"],
-                     maturity=r["maturity"], start_date=r["start_date"],
-                     end_date=r["end_date"], direction=r["direction"], price=r["price"],
-                     currency_1=r["currency_1"], amount_1=r["amount_1"],
-                     currency_2=r["currency_2"], amount_2=r["amount_2"])
+        to_drop = [
+            'product',
+            'margin',
+            'order',
+            'premium',
+            'premium_date',
+            'premium_currency',
+            'strike'
+        ]
+        for feature in to_drop:
+            row.pop(feature)
+
+        row['name'] = self._parse_str(row.get('name'))
+        row['registration_date'] = self._parse_date(row.get('registration_date'))
+
+        row['start_date'] = self._parse_date(row.get('start_date'))
+        row['end_date']   = self._parse_date(row.get('end_date'))
+        row['maturity']   = (row['end_date'] - row['start_date']).days
+
+        row['direction']  = self._parse_direction(row.get('direction'))
+
+        row['price']      = self._parse_float(row.get('price'))
+        row['currency_1'] = self._parse_str(row.get('currency_1'))
+        row['amount_1']   = self._parse_float(row.get('amount_1'))
+        row['currency_2'] = self._parse_str(row.get('currency_2'))
+        row['amount_2']   = self._parse_float(row.get('amount_2'))
+
+        return row
+  
+
+    def _build_fx_fwd(self, row: dict) -> FxFwd:
+        row = self._clean_fx_fwd(row)
+
+        return FxFwd(
+            name=row['name'],
+            registration_date=row['registration_date'],
+            maturity=row['maturity'],
+            start_date=row['start_date'],
+            end_date=row['end_date'],
+            direction=row['direction'],
+            price=row['price'],
+            currency_1=row['currency_1'],
+            amount_1=row['amount_1'],
+            currency_2=row['currency_2'],
+            amount_2=row['amount_2']
+        )
+
+    # ---------- FX NDF ----------
+
+    def _build_fx_ndf(self, row: dict) -> FxNdf:
+        row = self._clean_fx_fwd(row)
+
+        return FxNdf(
+            name=row['name'],
+            registration_date=row['registration_date'],
+            maturity=row['maturity'],
+            start_date=row['start_date'],
+            end_date=row['end_date'],
+            direction=row['direction'],
+            price=row['price'],
+            currency_1=row['currency_1'],
+            amount_1=row['amount_1'],
+            currency_2=row['currency_2'],
+            amount_2=row['amount_2']
+        )
+
+    # ---------- FX Swap ----------
 
     def _clean_fx_swap(self, row: dict) -> dict:
-        r = self._clean_fx_fwd(row)
-        r["rate"] = self._pf(r.get("rate"))
-        return r
+        '''Common cleaning and value parsing for FX Swap rows.'''
 
-    def _build_fx_swap(self, row):
-        r = self._clean_fx_swap(row)
-        return FxSwap(name=r["name"], registration_date=r["registration_date"],
-                      maturity=r["maturity"], start_date=r["start_date"],
-                      end_date=r["end_date"], direction=r["direction"], price=r["price"],
-                      rate=r["rate"], currency_1=r["currency_1"], amount_1=r["amount_1"],
-                      currency_2=r["currency_2"], amount_2=r["amount_2"])
+        row = row.copy()
 
-    def _build_fx_ndf(self, row):
-        r = self._clean_fx_fwd(row)
-        return FxNdf(name=r["name"], registration_date=r["registration_date"],
-                     maturity=r["maturity"], start_date=r["start_date"],
-                     end_date=r["end_date"], direction=r["direction"], price=r["price"],
-                     currency_1=r["currency_1"], amount_1=r["amount_1"],
-                     currency_2=r["currency_2"], amount_2=r["amount_2"])
+        to_drop = [
+            'product',
+            'margin',
+            'order',
+            'premium',
+            'premium_date',
+            'premium_currency',
+            'strike'
+        ]
+        for feature in to_drop:
+            row.pop(feature)
+
+        row['name'] = self._parse_str(row.get('name'))
+        row['registration_date'] = self._parse_date(row.get('registration_date'))
+
+        row['start_date'] = self._parse_date(row.get('start_date'))
+        row['end_date']   = self._parse_date(row.get('end_date'))
+        row['maturity']   = (row['end_date'] - row['start_date']).days
+
+        row['direction']  = self._parse_direction(row.get('direction'))
+
+        row['price']      = self._parse_float(row.get('price'))
+        row['rate']       = self._parse_float(row.get('rate'))
+        row['currency_1'] = self._parse_str(row.get('currency_1'))
+        row['amount_1']   = self._parse_float(row.get('amount_1'))
+        row['currency_2'] = self._parse_str(row.get('currency_2'))
+        row['amount_2']   = self._parse_float(row.get('amount_2'))
+
+        return row
+
+    def _build_fx_swap(self, row: dict) -> FxSwap:
+        row = self._clean_fx_swap(row)
+
+        return FxSwap(
+            name=row['name'],
+            registration_date=row['registration_date'],
+            maturity=row['maturity'],
+            start_date=row['start_date'],
+            end_date=row['end_date'],
+            direction=row['direction'],
+            price=row['price'],
+            rate=row['rate'],
+            currency_1=row['currency_1'],
+            amount_1=row['amount_1'],
+            currency_2=row['currency_2'],
+            amount_2=row['amount_2']
+        )
+
+    # ---------- IRS ----------
 
     def _clean_irs(self, row: dict) -> dict:
-        r = row.copy()
-        for k in ["product","currency_2","amount_2","margin","order",
-                  "premium","premium_date","premium_currency","strike"]:
-            r.pop(k, None)
-        r["name"]              = self._ps(r.get("name"))
-        r["registration_date"] = self._pd(r.get("registration_date"))
-        r["start_date"]        = self._pd(r.get("start_date"))
-        r["end_date"]          = self._pd(r.get("end_date"))
-        r["maturity"]          = (r["end_date"] - r["start_date"]).days
-        r["direction"]         = self._pdir(r.get("direction"))
-        r["price"]             = self._pf(r.get("price"))
-        r["currency_1"]        = self._ps(r.get("currency_1"))
-        r["amount_1"]          = self._pf(r.get("amount_1"))
-        r["index"]             = " ".join(r["name"].split()[2:])
-        return r
+        '''Common cleaning and value parsing for IRS rows.'''
 
-    def _build_irs(self, row):
-        r = self._clean_irs(row)
-        return IRS(name=r["name"], registration_date=r["registration_date"],
-                   maturity=r["maturity"], start_date=r["start_date"],
-                   end_date=r["end_date"], direction=r["direction"], price=r["price"],
-                   index=r["index"], currency=r["currency_1"], amount=r["amount_1"])
+        row = row.copy()
 
-    def _build_ois(self, row):
-        r = self._clean_irs(row)
-        return OIS(name=r["name"], registration_date=r["registration_date"],
-                   maturity=r["maturity"], start_date=r["start_date"],
-                   end_date=r["end_date"], direction=r["direction"], price=r["price"],
-                   index=r["index"], currency=r["currency_1"], amount=r["amount_1"])
+        to_drop = [
+            'product',
+            'currency_2',
+            'amount_2',
+            'margin',
+            'order',
+            'premium',
+            'premium_date',
+            'premium_currency',
+            'strike'
+        ]
+        for feature in to_drop:
+            row.pop(feature)
+
+        row['name'] = self._parse_str(row.get('name'))
+        row['registration_date'] = self._parse_date(row.get('registration_date'))
+
+        row['start_date'] = self._parse_date(row.get('start_date'))
+        row['end_date']   = self._parse_date(row.get('end_date'))
+        row['maturity']   = (row['end_date'] - row['start_date']).days
+
+        row['direction']  = self._parse_direction(row.get('direction'))
+
+        row['price']      = self._parse_float(row.get('price'))
+        row['currency_1'] = self._parse_str(row.get('currency_1'))
+        row['amount_1']   = self._parse_float(row.get('amount_1'))
+
+        row['index'] = ' '.join(row['name'].split()[2:])
+
+        return row
+
+    def _build_irs(self, row: dict) -> IRS:
+        row = self._clean_irs(row)
+
+        return IRS(
+            name=row['name'],
+            registration_date=row['registration_date'],
+            maturity=row['maturity'],
+            start_date=row['start_date'],
+            end_date=row['end_date'],
+            direction=row['direction'],
+            price=row['price'],
+            index=row['index'],
+            currency=row['currency_1'],
+            amount=row['amount_1'],
+        )
+    
+    # ---------- OIS ----------
+
+    def _build_ois(self, row: dict) -> OIS:
+        row = self._clean_irs(row)
+
+        return OIS(
+            name=row['name'],
+            registration_date=row['registration_date'],
+            maturity=row['maturity'],
+            start_date=row['start_date'],
+            end_date=row['end_date'],
+            direction=row['direction'],
+            price=row['price'],
+            index=row['index'],
+            currency=row['currency_1'],
+            amount=row['amount_1'],
+        )
+
+    # ---------- Parsing methods ----------
 
     @staticmethod
-    def _pi(v): return None if v in (None,'') else int(v)
+    def _parse_str(value):
+        if value in (None, ''):
+            return None
+        return str(value)
+    
+    @staticmethod
+    def _parse_int(value):
+        if value in (None, ''):
+            return None
+        return int(value)
 
     @staticmethod
-    def _ps(v): return None if v in (None, "") else str(v)
-
+    def _parse_float(value: str):
+        value = str(value)
+        if value in (None, ''):
+            return None
+        return float(value.rstrip('% '))
+    
     @staticmethod
-    def _pf(v): return float(str(v))
-
+    def _parse_date(value: str):
+        value = str(value)
+        if value in (None, ''):
+            return None
+        return datetime.strptime(value, "%d.%m.%Y").date()
+    
     @staticmethod
-    def _pd(v):
-        v = str(v)
-        if v in (None, ''): return None
-        return datetime.strptime(v, "%d.%m.%Y").date()
-
-    @staticmethod
-    def _pdir(v):
-        if v in (None, ""): return None
-        try: return Direction(v)
-        except Exception: raise ValueError(f"Unknown direction: {v}.")
+    def _parse_direction(value):
+        if value in (None, ''):
+            return None
+        try:
+            return Direction(value)
+        except:
+            raise ValueError(f'Unknown direction: {value}.')
