@@ -7,10 +7,12 @@ from domain.portfolio import Portfolio
 from pricing import MarketData, PricingEngine
 
 
-def get_latest_date(data_path: str):
+def get_latest_common_date(data_path: str):
     usd  = pd.read_csv(path.join(data_path, "usd_rates.csv"), sep=";", encoding="utf-8-sig")
     disc = pd.read_csv(path.join(data_path, "discount_curves.csv"), encoding="utf-8-sig")
-    common = set(usd["data"]) & set(disc["Дата"])
+    eur  = pd.read_csv(path.join(data_path, "eur_rates.csv"), sep=";", encoding="utf-8-sig")
+    cny  = pd.read_csv(path.join(data_path, "cny_rates.csv"), sep=";", encoding="utf-8-sig")
+    common = set(usd["data"]) & set(eur["data"]) & set(cny["data"]) & set(disc["Дата"])
     return max(pd.to_datetime(d, format="%d.%m.%Y").date() for d in common)
 
 
@@ -24,7 +26,7 @@ def main():
     fx = Portfolio(prtf.get_by_type((FxFwd, FxNdf)), name="FX Instruments")
     print(fx.output())
     print("\n--- NPV ---")
-    val_date    = get_latest_date(market_path)
+    val_date    = get_latest_common_date(market_path)
     market_data = MarketData.load_from_csv(val_date, market_path)
     engine      = PricingEngine(market_data, base_currency="RUB")
     total = 0.0
