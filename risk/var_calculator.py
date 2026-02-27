@@ -7,7 +7,7 @@ from pricing import MarketData, PricingEngine
 
 class VaRCalculator:
 
-    Z_VALUES = {0.90: 1.282, 0.95: 1.645, 0.99: 2.326}
+    Z_VALUES = {0.90: 1.282, 0.95: 1.645, 0.99: 2.326}  # Normal quantiles
 
     def __init__(self, portfolio: Portfolio, base_currency="RUB", data_path="data/market"):
         self.portfolio = portfolio
