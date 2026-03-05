@@ -72,5 +72,5 @@ class FxSwapPricer:
 
         return npv_near + npv_far
 
-    def get_native_currency(self, contract: FxSwap) -> str:
+    def get_native_currency(self, contract: FxSwap) -> str:  # price in CCY2
         return contract.currency_2
