@@ -1,6 +1,7 @@
 from pricing.market_data import MarketData
 from pricing.instrument_pricers.fx_pricer import FxForwardPricer
-from domain.instruments import FxFwd, FxNdf, Contract
+from pricing.instrument_pricers.fx_swap_pricer import FxSwapPricer
+from domain.instruments import FxFwd, FxNdf, FxSwap, Contract
 from domain.portfolio import Portfolio
 
 
@@ -9,8 +10,10 @@ class PricingEngine:
     def __init__(self, market_data: MarketData, base_currency: str = "RUB"):
         self.market_data = market_data
         self.base_currency = base_currency
-        self.fx_pricer = FxForwardPricer()
-        self.pricers = {FxFwd: self.fx_pricer, FxNdf: self.fx_pricer}
+        self.fx_pricer      = FxForwardPricer()
+        self.fx_swap_pricer = FxSwapPricer()
+        self.pricers = {FxFwd: self.fx_pricer, FxNdf: self.fx_pricer,
+                        FxSwap: self.fx_swap_pricer}
 
     def price(self, contract: Contract, target_currency: str = None) -> float:
         ct = type(contract)
