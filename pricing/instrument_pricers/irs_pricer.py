@@ -21,6 +21,7 @@ def _get_forward_curve_name(index: str) -> str:
     raise KeyError(f"No forward curve mapping for index: '{index}'")
 
 
+# OIS and IRS use the same pricer
 class IRSwapPricer:
 
     def calculate_npv(self, contract, market_data: MarketData) -> float:
