@@ -7,7 +7,8 @@ from pricing import MarketData, PricingEngine
 
 class VaRCalculator:
 
-    Z_VALUES = {0.90: 1.282, 0.95: 1.645, 0.99: 2.326}  # Normal quantiles
+    Z_VALUES = {0.90: 1.282, 0.95: 1.645, 0.99: 2.326}
+    ES_COEFFICIENTS = {0.90: 1.7550, 0.95: 2.0628, 0.99: 2.6652}
 
     def __init__(self, portfolio: Portfolio, base_currency="RUB", data_path="data/market"):
         self.portfolio = portfolio
@@ -50,20 +51,52 @@ class VaRCalculator:
                 pnls  = [npvs[i] - npvs[i-1] for i in range(1, len(npvs))]
                 hist  = self._historical_var_from_pnls(pnls, confidence)
                 param = self._parametric_var_from_pnls(pnls, confidence)
+                h_es  = self._historical_es_from_pnls(pnls, confidence)
+                p_es  = self._parametric_es_from_pnls(pnls, confidence)
             else:
-                hist = param = None
+                hist = param = h_es = p_es = None
             per_instrument.append({"contract": c,
-                                    "historical_var": hist,
-                                    "parametric_var": param})
+                                    "historical_var": hist, "parametric_var": param,
+                                    "historical_es": h_es,  "parametric_es": p_es})
 
         if len(portfolio_npvs) >= 2:
             pp = [portfolio_npvs[i] - portfolio_npvs[i-1] for i in range(1, len(portfolio_npvs))]
             portfolio = {"historical_var": self._historical_var_from_pnls(pp, confidence),
-                         "parametric_var": self._parametric_var_from_pnls(pp, confidence)}
+                         "parametric_var": self._parametric_var_from_pnls(pp, confidence),
+                         "historical_es":  self._historical_es_from_pnls(pp, confidence),
+                         "parametric_es":  self._parametric_es_from_pnls(pp, confidence)}
         else:
-            portfolio = {"historical_var": None, "parametric_var": None}
+            portfolio = {"historical_var": None, "parametric_var": None,
+                         "historical_es": None,  "parametric_es": None}
 
         return per_instrument, portfolio
+
+    @staticmethod
+    def scale_var(per_instrument, portfolio, holding_period):
+        factor = holding_period ** 0.5
+        def _s(x): return x * factor if x is not None else None
+        scaled_i = [{"contract": r["contract"],
+                     "historical_var": _s(r["historical_var"]),
+                     "parametric_var": _s(r["parametric_var"]),
+                     "historical_es":  _s(r["historical_es"]),
+                     "parametric_es":  _s(r["parametric_es"])}
+                    for r in per_instrument]
+        scaled_p = {"historical_var": _s(portfolio["historical_var"]),
+                    "parametric_var": _s(portfolio["parametric_var"]),
+                    "historical_es":  _s(portfolio["historical_es"]),
+                    "parametric_es":  _s(portfolio["parametric_es"])}
+        return scaled_i, scaled_p
+
+    def _historical_es_from_pnls(self, pnls, confidence):
+        sp = sorted(pnls)
+        k = max(1, int(len(pnls) * (1 - confidence)))
+        m = sum(sp[:k]) / k
+        return abs(m) if m < 0 else 0.0
+
+    def _parametric_es_from_pnls(self, pnls, confidence):
+        arr = np.array(pnls)
+        val = np.mean(arr) - np.std(arr, ddof=1) * self.ES_COEFFICIENTS[confidence]
+        return abs(val) if val < 0 else 0.0
 
     def _historical_var_from_pnls(self, pnls, confidence):
         sp = sorted(pnls)
@@ -76,15 +109,3 @@ class VaRCalculator:
         arr = np.array(pnls)
         val = np.mean(arr) - self.Z_VALUES[confidence] * np.std(arr, ddof=1)
         return abs(val) if val < 0 else 0.0
-
-    @staticmethod
-    def scale_var(per_instrument, portfolio, holding_period):
-        factor = holding_period ** 0.5
-        def _s(x): return x * factor if x is not None else None
-        scaled_i = [{"contract": r["contract"],
-                     "historical_var": _s(r["historical_var"]),
-                     "parametric_var": _s(r["parametric_var"])}
-                    for r in per_instrument]
-        scaled_p = {"historical_var": _s(portfolio["historical_var"]),
-                    "parametric_var": _s(portfolio["parametric_var"])}
-        return scaled_i, scaled_p
