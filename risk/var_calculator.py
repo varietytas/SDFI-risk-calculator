@@ -7,6 +7,7 @@ from pricing import MarketData, PricingEngine
 
 class VaRCalculator:
 
+    """Calculates VaR and ES using historical and parametric methods."""
     Z_VALUES = {0.90: 1.282, 0.95: 1.645, 0.99: 2.326}
     ES_COEFFICIENTS = {0.90: 1.7550, 0.95: 2.0628, 0.99: 2.6652}
 
