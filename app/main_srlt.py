@@ -65,3 +65,33 @@ if "prtf" in st.session_state:
     filtered = [c for c in prtf if c.product in selected_types] if selected_types else list(prtf)
     port_df = pd.DataFrame([_contract_to_row(c) for c in filtered])
     st.dataframe(port_df, use_container_width=True, hide_index=True)
+
+    portfolio = Portfolio(prtf.get_by_type((FxFwd, FxNdf, FxSwap, IRS, OIS)), name="Instruments")
+
+    st.divider()
+    st.subheader("Net Present Value")
+
+    if st.button("Calculate NPV"):
+        from pricing import MarketData, PricingEngine
+        val_date    = get_available_dates(BASE_DIR / "data" / "market")[-1]
+        market_data = MarketData.load_from_csv(val_date, str(BASE_DIR / "data" / "market"))
+        engine      = PricingEngine(market_data, base_currency="RUB")
+        npv_rows = []; total_npv = 0.0
+        for contract in portfolio:
+            try:
+                npv = engine.price(contract, target_currency="RUB")
+            except Exception:
+                npv = None
+            npv_rows.append({"Instrument": repr(contract), "Product": contract.product, "NPV": npv})
+            if npv is not None: total_npv += npv
+        st.session_state["npv_results"] = npv_rows
+        st.session_state["npv_total"]   = total_npv
+        st.session_state["npv_date"]    = val_date
+
+    if "npv_results" in st.session_state:
+        st.info(f"Valuation date: {st.session_state['npv_date']}")
+        npv_df = pd.DataFrame(st.session_state["npv_results"])
+        disp = npv_df[["Instrument","NPV"]].copy()
+        disp["NPV"] = disp["NPV"].apply(lambda x: f"{x:,.2f} RUB" if x is not None else "N/A")
+        st.dataframe(disp, use_container_width=True, hide_index=True)
+        st.metric("Total Portfolio NPV", f"{st.session_state['npv_total']:,.2f} RUB")
