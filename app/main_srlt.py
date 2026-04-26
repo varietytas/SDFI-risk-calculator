@@ -217,7 +217,8 @@ if 'prtf' in st.session_state:
         with st.container(border=True):
             st.markdown('#### Confidence Level')
             confidence_map = {'90%': 0.90, '95%': 0.95, '99%': 0.99}
-            confidence_label = st.radio(
+            confidence_label = st.radio(  # 90/95/99% options
+            
                 'Confidence level', list(confidence_map.keys()),
                 index=1, horizontal=True, label_visibility='collapsed',
             )
