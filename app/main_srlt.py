@@ -226,8 +226,7 @@ if 'prtf' in st.session_state:
         with st.container(border=True):
             st.markdown('#### Holding Period')
             holding_map = {'1 day': 1, '5 days (1W)': 5, '10 days': 10, '21 days (1M)': 21}
-            holding_label = st.radio(  # 1/5/10/21 days
-            
+            holding_label = st.radio(
                 'Holding period', list(holding_map.keys()),
                 index=0, horizontal=True, label_visibility='collapsed',
             )
