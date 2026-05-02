@@ -274,3 +274,57 @@ if 'prtf' in st.session_state:
         st.dataframe(results_df, use_container_width=True, hide_index=True)
 
     # -- Portfolio Summary --
+    if 'var_portfolio' in st.session_state:
+        st.divider()
+        st.subheader('Portfolio Summary')
+
+        pv         = st.session_state['var_portfolio']
+        conf       = st.session_state.get('var_confidence', confidence)
+        conf_pct   = int(conf * 100)
+        tail_pct   = 100 - conf_pct
+        hp         = st.session_state['var_dates_info'][3]
+
+        total_npv_val = st.session_state.get('npv_total')
+        npv_str       = fmt(total_npv_val) if total_npv_val is not None else 'N/A'
+
+        # Summary table
+        summary_df = pd.DataFrame({
+            'Metric': [
+                'NPV',
+                'Historical VaR', 'Parametric VaR',
+                'Historical ES',  'Parametric ES',
+                'LC',
+                'Historical LVaR', 'Parametric LVaR',
+            ],
+            'Value': [
+                npv_str,
+                fmt(pv['historical_var']), fmt(pv['parametric_var']),
+                fmt(pv['historical_es']),  fmt(pv['parametric_es']),
+                fmt(pv['lc']),
+                fmt(pv['historical_lvar']), fmt(pv['parametric_lvar']),
+            ],
+        })
+
+        # Bullet-point explanations
+        bull_col, tbl_col = st.columns([0.55, 0.45])
+
+        with bull_col:
+            npv_bullet = (
+                f'The current mark-to-market value of the portfolio is **{npv_str}**.'
+                if total_npv_val is not None
+                else 'Portfolio NPV has not been calculated yet — run **Calculate NPV** first.'
+            )
+            st.markdown(
+                f'- **NPV:** {npv_bullet}\n'
+                f'- **VaR:** With {conf_pct}% probability, the portfolio loss will not exceed '
+                f'**{fmt(pv["parametric_var"])}** over the next {hp} day(s).\n'
+                f'- **ES:** In the worst {tail_pct}% of scenarios, the average expected portfolio '
+                f'loss is **{fmt(pv["parametric_es"])}**.\n'
+                f'- **Liquidation Cost (LC):** The estimated one-time cost to fully close and exit '
+                f'the portfolio is **{fmt(pv["lc"])}**.\n'
+                f'- **LVaR:** Including liquidation costs, the total worst-case loss at {conf_pct}% '
+                f'confidence is **{fmt(pv["parametric_lvar"])}** over the next {hp} day(s).'
+            )
+
+        with tbl_col:
+            st.dataframe(summary_df, hide_index=True, use_container_width=True)
