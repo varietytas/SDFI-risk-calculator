@@ -24,12 +24,12 @@ st.markdown(
     f'<div style="width: 336px; margin-bottom: 4px;">{_svg}</div>',
     unsafe_allow_html=True,
 )
-st.title('SDFI Risk Calculator')
+st.title('SDFI Risk Calculator')  # main heading
 
 # Global style: all st.subheader elements red italic
 st.markdown("""
 <style>
-h3 { color: #EA3426; font-style: italic; }
+h3 { color: #EA3426 !important; font-style: italic !important; }
 </style>
 """, unsafe_allow_html=True)
 
