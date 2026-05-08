@@ -24,7 +24,7 @@ st.markdown(
     f'<div style="width: 336px; margin-bottom: 4px;">{_svg}</div>',
     unsafe_allow_html=True,
 )
-st.title('SDFI Risk Calculator')  # main heading
+st.title('SDFI Risk Calculator')
 
 # Global style: all st.subheader elements red italic
 st.markdown("""
@@ -220,7 +220,7 @@ if 'prtf' in st.session_state:
             confidence_label = st.radio(
                 'Confidence level', list(confidence_map.keys()),
                 index=1, horizontal=True, label_visibility='collapsed',
-            )
+            )  # hide radio label
             confidence = confidence_map[confidence_label]
     with col2:
         with st.container(border=True):
@@ -229,7 +229,7 @@ if 'prtf' in st.session_state:
             holding_label = st.radio(
                 'Holding period', list(holding_map.keys()),
                 index=0, horizontal=True, label_visibility='collapsed',
-            )
+            )  # hide radio label
             holding_period = holding_map[holding_label]
 
     if st.button('Calculate VaR'):
