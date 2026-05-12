@@ -29,7 +29,7 @@ st.title('SDFI Risk Calculator')
 # Global style: all st.subheader elements red italic
 st.markdown("""
 <style>
-h3 { color: #EA3426 !important; font-style: italic !important; }  /* red italic */
+h3 { color: #EA3426 !important; font-style: italic !important; }
 </style>
 """, unsafe_allow_html=True)
 
