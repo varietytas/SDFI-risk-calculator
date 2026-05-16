@@ -9,7 +9,7 @@ from domain.portfolio import Portfolio
 from pricing import MarketData, PricingEngine
 
 
-def get_latest_common_date(data_path: str):  # newest date with full market data
+def get_latest_common_date(data_path: str):
     usd = pd.read_csv(path.join(data_path, 'usd_rates.csv'), sep=';', encoding='utf-8-sig')
     eur = pd.read_csv(path.join(data_path, 'eur_rates.csv'), sep=';', encoding='utf-8-sig')
     cny = pd.read_csv(path.join(data_path, 'cny_rates.csv'), sep=';', encoding='utf-8-sig')
