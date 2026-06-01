@@ -26,16 +26,48 @@ st.markdown(
 )
 st.title('SDFI Risk Calculator')
 
-# Global style: all st.subheader elements red italic
+# Global style: all st.subheader elements red italic + hint tooltip
 st.markdown("""
 <style>
 h3 { color: #EA3426 !important; font-style: italic !important; }
+.hint-wrap { position: relative; display: inline-block; }
+.hint-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; background: #999; color: white;
+    border-radius: 50%; font-size: 10px; font-weight: bold;
+    margin-left: 6px; cursor: help; font-style: normal;
+    vertical-align: middle;
+}
+.hint-tip {
+    visibility: hidden; opacity: 0;
+    background: #333; color: #fff; font-size: 13px; font-style: normal; font-weight: normal;
+    border-radius: 4px; padding: 8px 12px; width: 300px;
+    position: absolute; left: 0; bottom: 130%; z-index: 99;
+    transition: opacity 0.2s; line-height: 1.5;
+}
+.hint-wrap:hover .hint-tip { visibility: visible; opacity: 1; }
 </style>
 """, unsafe_allow_html=True)
 
+
+def section_header(title: str, hint: str) -> None:
+    st.markdown(
+        f'<h3>{title}'
+        f'<span class="hint-wrap">'
+        f'<span class="hint-icon">?</span>'
+        f'<span class="hint-tip">{hint}</span>'
+        f'</span></h3>',
+        unsafe_allow_html=True,
+    )
+
 # File upload section
 with st.container(border=True):
-    uploaded_file = st.file_uploader('Upload a CSV file', type='csv')
+
+    uploaded_file = st.file_uploader(
+        'Upload your portfolio loaded from «ТКС Сапфир» as a file in CSV format',
+        type='csv'
+    )
+
     if st.button('Read'):
         if uploaded_file is not None:
             try:
@@ -110,11 +142,14 @@ if 'prtf' in st.session_state:
     prtf = st.session_state['prtf']
 
     # -- Portfolio contents --
-    st.subheader('Portfolio contents')
+    section_header(
+        'Portfolio contents',
+        'This section provides basic information on contracts and filtering.',
+    )
 
     all_types = sorted({c.product for c in prtf})
     selected_types = st.multiselect(
-        'Filter by product type', all_types, default=all_types, key='portfolio_filter'
+        'Filter by product type and sorting', all_types, default=all_types, key='portfolio_filter'
     )
 
     filtered = (
@@ -128,7 +163,11 @@ if 'prtf' in st.session_state:
 
     # -- Net Present Value --
     st.divider()
-    st.subheader('Net Present Value')
+    section_header(
+        'Net Present Value',
+        'This section provides information about the Net Present Value of all assets in the '
+        'portfolio, total portfolio cost, and value breakdown by product type.',
+    )
 
     if st.button('Calculate NPV'):
         val_date = get_available_dates(BASE_DIR / 'data' / 'market')[-1]
@@ -210,8 +249,15 @@ if 'prtf' in st.session_state:
 
     # -- Value at Risk --
     st.divider()
-    st.subheader('Value at Risk')
+    section_header(
+        'Value at Risk',
+        'Value at Risk (VaR) — the maximum amount of money that can be lost over a given period '
+        'at the specified confidence level.\nThis section also includes Expected Shortfall (ES), '
+        'Liquidation Cost (LC), and Liquidity-adjusted VaR (LVaR), calculated using both '
+        'parametric and historical methods.',
+    )
 
+    st.caption('Configure VaR parameters')
     col1, col2 = st.columns(2)
     with col1:
         with st.container(border=True):
