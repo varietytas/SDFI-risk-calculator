@@ -1,7 +1,9 @@
 from pathlib import Path
 from datetime import date
+import math
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from data import PortfolioLoader, InstrumentFactory
@@ -136,6 +138,90 @@ def get_available_dates(data_path: Path) -> list[date]:
 
 def fmt(x):
     return f'{x:,.2f} RUB' if x is not None else 'N/A'
+
+
+_GAUGE_COLORS = {
+    5: '#2ca02c',
+    4: '#90EE90',
+    3: '#FFD700',
+    2: '#FFA500',
+    1: '#DC143C',
+}
+
+_GAUGE_CAPTIONS = {
+    5: "Risk is well-managed. The 1-day potential loss represents less than 3% of portfolio value — consistent with a properly hedged derivatives book.",
+    4: "Risk is within acceptable bounds for an active derivatives portfolio. Continue routine monitoring.",
+    3: "Elevated exposure. The portfolio shows meaningful sensitivity to adverse market moves. Review key concentrations and consider partial hedges.",
+    2: "High risk exposure. Significant losses are possible on an adverse trading day. Risk reduction or re-hedging is advisable.",
+    1: "Critical risk level. Immediate review required — the portfolio is severely exposed to market volatility and may sustain substantial losses within a single day.",
+}
+
+
+def _render_risk_gauge(pv: dict, total_npv):
+    if total_npv is None:
+        st.info("Run **Calculate NPV** to display the risk level indicator.")
+        return
+
+    pnl_mean = pv.get('pnl_mean')
+    pnl_std  = pv.get('pnl_std')
+    if pnl_mean is None or pnl_std is None:
+        return
+
+    raw = pnl_mean - 1.645 * pnl_std
+    var_95_1d = abs(raw) if raw < 0 else 0.0
+
+    if total_npv == 0:
+        level, ratio = 1, None
+    else:
+        ratio = var_95_1d / abs(total_npv)
+        if   ratio < 0.03: level = 5
+        elif ratio < 0.07: level = 4
+        elif ratio < 0.15: level = 3
+        elif ratio < 0.30: level = 2
+        else:              level = 1
+
+    fig = go.Figure(go.Indicator(
+        mode='gauge',
+        value=level,
+        title={'text': f'Risk Level {level} / 5', 'font': {'size': 17, 'color': '#888888'}},
+        gauge={
+            'axis': {'range': [0, 5], 'visible': False},
+            'steps': [
+                {'range': [0, 1], 'color': '#DC143C'},
+                {'range': [1, 2], 'color': '#FFA500'},
+                {'range': [2, 3], 'color': '#FFD700'},
+                {'range': [3, 4], 'color': '#90EE90'},
+                {'range': [4, 5], 'color': '#2ca02c'},
+            ],
+            'bar': {'color': "#5C5C5C", 'thickness': 0.20, 'line': {'width': 0}},
+            'bgcolor': 'rgba(0,0,0,0)',
+            'borderwidth': 0,
+        },
+    ))
+    fig.update_layout(
+        height=200,
+        margin=dict(l=10, r=10, t=50, b=5),
+        paper_bgcolor='rgba(0,0,0,0)',
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    suffix = ''
+    if ratio is not None:
+        suffix = (
+            f' &nbsp;<span style="font-weight:normal; color:#888; font-size:15px;">'
+            f'( VaR₉₅/NPV = {ratio * 100:.1f}% )</span>'
+        )
+    if total_npv < 0:
+        suffix += (
+            ' &nbsp;<span style="color:#DC143C; font-size:15px;">[portfolio NPV is negative]</span>'
+        )
+
+    st.markdown(
+        f'<p style="color:{_GAUGE_COLORS[level]}; font-size:17px; margin-top:-8px; text-align:center;">'
+        f'{_GAUGE_CAPTIONS[level]}</p>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(f'<p style="text-align:center;">{suffix}</p>', unsafe_allow_html=True)
 
 
 if 'prtf' in st.session_state:
@@ -371,6 +457,7 @@ if 'prtf' in st.session_state:
                 f'- **LVaR:** Including liquidation costs, the total worst-case loss at {conf_pct}% '
                 f'confidence is **{fmt(pv["parametric_lvar"])}** over the next {hp} day(s).'
             )
+            _render_risk_gauge(pv, total_npv_val)
 
         with tbl_col:
             st.dataframe(summary_df, hide_index=True, use_container_width=True)

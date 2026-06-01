@@ -134,6 +134,7 @@ class VaRCalculator:
             port_pnls = [portfolio_npvs[i] - portfolio_npvs[i-1] for i in range(1, len(portfolio_npvs))]
             p_hist = self._historical_var_from_pnls(port_pnls, confidence)
             p_param = self._parametric_var_from_pnls(port_pnls, confidence)
+            _arr = np.array(port_pnls)
             portfolio = {
                 'historical_var':  p_hist,
                 'parametric_var':  p_param,
@@ -142,6 +143,8 @@ class VaRCalculator:
                 'lc':              portfolio_lc,
                 'historical_lvar': (p_hist + portfolio_lc) if (p_hist is not None and portfolio_lc is not None) else None,
                 'parametric_lvar': (p_param + portfolio_lc) if (p_param is not None and portfolio_lc is not None) else None,
+                'pnl_mean':        float(np.mean(_arr)),
+                'pnl_std':         float(np.std(_arr, ddof=1)),
             }
         else:
             portfolio = {
@@ -149,6 +152,7 @@ class VaRCalculator:
                 'historical_es':  None, 'parametric_es':  None,
                 'lc':             portfolio_lc,
                 'historical_lvar': None, 'parametric_lvar': None,
+                'pnl_mean':       None, 'pnl_std':         None,
             }
 
         return per_instrument, portfolio
@@ -201,6 +205,8 @@ class VaRCalculator:
             'lc':              lc,  # Not scaled
             'historical_lvar': _lvar(h, lc),
             'parametric_lvar': _lvar(p, lc),
+            'pnl_mean':        portfolio.get('pnl_mean'),  # 1-day stats, not scaled
+            'pnl_std':         portfolio.get('pnl_std'),
         }
 
         return scaled_instruments, scaled_portfolio
