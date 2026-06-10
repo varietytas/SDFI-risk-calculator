@@ -1,4 +1,12 @@
+import sys
 from pathlib import Path
+
+# Make the project root importable
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+
 from datetime import date
 import math
 import pandas as pd
@@ -17,7 +25,6 @@ st.set_page_config(page_title='SDFI Risk Calculator', layout='wide')
 
 factory  = InstrumentFactory()
 loader   = PortfolioLoader(factory)
-BASE_DIR = Path(__file__).resolve().parents[1]  # Project root
 
 # Logo + title
 _svg = (BASE_DIR / 'app' / 'assets' / 'moex_logo.svg').read_text()
