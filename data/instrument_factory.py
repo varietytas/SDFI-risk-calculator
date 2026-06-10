@@ -50,7 +50,7 @@ class InstrumentFactory:
 
         row['start_date'] = self._parse_date(row.get('start_date'))
         row['end_date']   = self._parse_date(row.get('end_date'))
-        row['maturity']   = (row['end_date'] - row['start_date']).days
+        row['maturity']   = (row['end_date'] - row['registration_date']).days
 
         row['direction']  = self._parse_direction(row.get('direction'))
 
