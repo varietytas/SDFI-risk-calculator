@@ -1,6 +1,5 @@
 uni_related/
-data/src/
-data/market/
+data/src/test
 sandbox.py
 formulas.xlsx
 *formulas.xlsx
