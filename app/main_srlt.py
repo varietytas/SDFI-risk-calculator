@@ -35,7 +35,7 @@ st.markdown(
 )
 st.title('SDFI Risk Calculator')
 
-# Global style: all st.subheader elements red italic + hint tooltip
+# Global style
 st.markdown("""
 <style>
 h3 { color: #EA3426 !important; font-style: italic !important; }
@@ -70,7 +70,7 @@ def section_header(title: str, hint: str) -> None:
     )
 
 
-# Ready-made test portfolios available for download (kept in data/src/demo/)
+# test portfolios
 DEMO_DIR = BASE_DIR / 'data' / 'src' / 'demo'
 DEMO_PORTFOLIOS = [
     {
@@ -353,7 +353,7 @@ if 'prtf' in st.session_state:
         st.metric('Total Portfolio NPV', f'{st.session_state["npv_total"]:,.2f} RUB')
         st.markdown('<div style="margin-bottom: 18px;"></div>', unsafe_allow_html=True)
 
-        # Pie chart - NPV breakdown by product type
+        # Pie chart
         chart_df = npv_df.dropna(subset=['NPV'])
         if not chart_df.empty:
             product_npv = (
@@ -500,7 +500,7 @@ if 'prtf' in st.session_state:
             ],
         })
 
-        # Bullet-point explanations
+        # Explanations
         bull_col, tbl_col = st.columns([0.55, 0.45])
 
         with bull_col:

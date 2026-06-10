@@ -39,7 +39,7 @@ class PortfolioLoader:
     def _global_cleanup(df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
 
-        # Drop unused columns (errors='ignore' for some CSVs are subsets of the full format)
+        # Drop unused columns (errors='ignore' for subsets of the full format)
         df.drop(
             columns=[
                 'Номер в клиринговой системе',

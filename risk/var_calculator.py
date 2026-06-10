@@ -1,6 +1,5 @@
 """
 Value at Risk (VaR) calculator implementing historical and parametric methods.
-Based on formulas from formulas.xlsx.
 """
 
 from datetime import date
