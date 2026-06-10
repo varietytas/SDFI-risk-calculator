@@ -62,8 +62,64 @@ def section_header(title: str, hint: str) -> None:
         unsafe_allow_html=True,
     )
 
+
+# Ready-made test portfolios available for download (kept in data/src/demo/)
+DEMO_DIR = BASE_DIR / 'data' / 'src' / 'demo'
+DEMO_PORTFOLIOS = [
+    {
+        'file': 'portfolio_test_small.csv',
+        'label': 'Small — 10 contracts (~10 M ₽)',
+        'desc': 'Small-business book: 5 FX forwards, 3 IRS, 1 OIS, 1 FX swap.',
+    },
+    {
+        'file': 'portfolio_test_medium.csv',
+        'label': 'Medium — 30 contracts (~800 M ₽)',
+        'desc': 'Mid-size book: 6 of each type (FX Fwd, FX Ndf, FX Swap, IRS, OIS).',
+    },
+    {
+        'file': 'portfolio_test_large.csv',
+        'label': 'Large — 100 contracts (~90 B ₽)',
+        'desc': 'Large, diversified book: 20 of each of the 5 product types.',
+    },
+    {
+        'file': 'portfolio_test_forwards.csv',
+        'label': 'FX Forwards & NDFs — 50 contracts',
+        'desc': 'FX-only book: 25 forwards + 25 NDFs across USD/EUR/CNY.',
+    },
+]
+
+
+@st.dialog('Download a test portfolio')
+def _download_portfolios_dialog() -> None:
+    st.markdown(
+        'Ready-made portfolios to explore the calculator '
+        'without preparing your own data. Download one below, then upload it via '
+        '«Upload your portfolio».'
+    )
+    st.divider()
+
+    for item in DEMO_PORTFOLIOS:
+        path = DEMO_DIR / item['file']
+        if not path.exists():
+            continue
+        st.markdown(f'**{item["label"]}**')
+        st.caption(item['desc'])
+        st.download_button(
+            'Download CSV',
+            data=path.read_bytes(),
+            file_name=item['file'],
+            mime='text/csv',
+            use_container_width=True,
+            key=f'dl_{item["file"]}',
+        )
+        st.markdown('<div style="margin-bottom: 10px;"></div>', unsafe_allow_html=True)
+
+
 # File upload section
 with st.container(border=True):
+
+    if st.button('📥 Download a test portfolio', width=300):
+        _download_portfolios_dialog()
 
     uploaded_file = st.file_uploader(
         'Upload your portfolio loaded from «ТКС Сапфир» as a file in CSV format',
